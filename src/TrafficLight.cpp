@@ -1,6 +1,7 @@
 #include <iostream>
 #include <random>
 #include <thread>
+#include <algorithm>
 
 #include "TrafficLight.h"
 
@@ -66,7 +67,7 @@ void TrafficLight::waitForGreen()
 
 TrafficLightPhase TrafficLight::getCurrentPhase()
 {
-    std::unique_lock<std::mutex> lck(_mtx);
+    
     return _currentPhase;
 }
 
@@ -78,6 +79,7 @@ void TrafficLight::simulate()
     this->threads.emplace_back(std::thread(&TrafficLight::cycleThroughPhases,this));
 }
 
+
 // virtual function which is executed in a thread
 void TrafficLight::cycleThroughPhases()
 {
@@ -87,25 +89,27 @@ void TrafficLight::cycleThroughPhases()
     // Also, the while-loop should use std::this_thread::sleep_for to wait 1ms between two cycles. 
     std::random_device rd;
     std::mt19937 eng(rd());
-    std::uniform_int_distribution<> distr(4, 6);
+    std::uniform_int_distribution<> distr(4000, 6000);
     bool flag = false;
     int duration;
     duration = distr(eng);
+    int durationSinceSwitched;
+    auto lastSwitchedTime = std::chrono::system_clock::now();
     while (true)
     {
         
-        std::this_thread::sleep_for(std::chrono::microseconds(1));
-        std::unique_lock<std::mutex> lck(_mtx);
-        if (flag)   {
-             this->light.send(TrafficLightPhase::green);
-             this->_currentPhase = TrafficLightPhase::green;
+        durationSinceSwitched = std::chrono::duration_cast<std::chrono::milliseconds>
+                                (std::chrono::system_clock::now() - lastSwitchedTime).count();
+        if (durationSinceSwitched > duration)  {
+            this->_currentPhase = (this->_currentPhase==TrafficLightPhase::red) ? green:red;
+            auto messagePull = std::async(std::launch::async, 
+                                    &MessageQueue<TrafficLightPhase>::send,
+                                    &light,
+                                    std::move(_currentPhase));
+            messagePull.wait();
+            lastSwitchedTime = std::chrono::system_clock::now();
+
         }
-        else   {
-             this->light.send(TrafficLightPhase::red);  
-             this->_currentPhase = TrafficLightPhase::red;
-        }  
-        flag = !flag;
-        std::this_thread::sleep_for(std::chrono::seconds(duration));
     }
     
 }
