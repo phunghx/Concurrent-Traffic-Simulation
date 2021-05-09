@@ -31,7 +31,7 @@ void MessageQueue<T>::send(T &&msg)
     // as well as _condition.notify_one() to add a new message to the queue and 
     //afterwards send a notification.
     // simulate some work
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        // std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
         // perform vector modification under the lock
         std::lock_guard<std::mutex> uLock(_mutex);
@@ -66,6 +66,7 @@ void TrafficLight::waitForGreen()
 
 TrafficLightPhase TrafficLight::getCurrentPhase()
 {
+    std::unique_lock<std::mutex> lck(_mtx);
     return _currentPhase;
 }
 
@@ -87,11 +88,14 @@ void TrafficLight::cycleThroughPhases()
     std::random_device rd;
     std::mt19937 eng(rd());
     std::uniform_int_distribution<> distr(4, 6);
-    bool flag = true;
-
+    bool flag = false;
+    int duration;
+    duration = distr(eng);
     while (true)
     {
+        
         std::this_thread::sleep_for(std::chrono::microseconds(1));
+        std::unique_lock<std::mutex> lck(_mtx);
         if (flag)   {
              this->light.send(TrafficLightPhase::green);
              this->_currentPhase = TrafficLightPhase::green;
@@ -100,8 +104,8 @@ void TrafficLight::cycleThroughPhases()
              this->light.send(TrafficLightPhase::red);  
              this->_currentPhase = TrafficLightPhase::red;
         }  
-        std::this_thread::sleep_for(std::chrono::seconds(distr(eng)));
         flag = !flag;
+        std::this_thread::sleep_for(std::chrono::seconds(duration));
     }
     
 }
