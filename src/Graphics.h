@@ -21,7 +21,7 @@ public:
 private:
     // typical behaviour methods
     void loadBackgroundImg();
-    void drawTrafficObjects();
+    int drawTrafficObjects();
 
     // member variables
     std::vector<std::shared_ptr<TrafficObject>> _trafficObjects;

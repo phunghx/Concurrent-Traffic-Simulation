@@ -14,7 +14,8 @@ void Graphics::simulate()
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
         // update graphics
-        this->drawTrafficObjects();
+        if(this->drawTrafficObjects()==27)
+              break;
     }
 }
 
@@ -31,7 +32,7 @@ void Graphics::loadBackgroundImg()
     _images.push_back(background.clone()); // third element will be the result image for display
 }
 
-void Graphics::drawTrafficObjects()
+int Graphics::drawTrafficObjects()
 {
     // reset images
     _images.at(1) = _images.at(0).clone();
@@ -68,5 +69,5 @@ void Graphics::drawTrafficObjects()
 
     // display background and overlay image
     cv::imshow(_windowName, _images.at(2));
-    cv::waitKey(33);
+    return cv::waitKey(33);
 }
